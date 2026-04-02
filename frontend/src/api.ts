@@ -1,23 +1,18 @@
-import { mockOverview } from "@/lib/mock-data";
-import type { DashboardOverview } from "@/lib/types";
+import type { DashboardOverview } from "@/types";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
 export async function getDashboardOverview(): Promise<DashboardOverview> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/dashboard/overview`, {
-      cache: "no-store",
-    });
+  const response = await fetch(`${API_BASE_URL}/dashboard/overview`, {
+    cache: "no-store",
+  });
 
-    if (!response.ok) {
-      throw new Error(`Dashboard request failed with status ${response.status}`);
-    }
-
-    return (await response.json()) as DashboardOverview;
-  } catch {
-    return mockOverview;
+  if (!response.ok) {
+    throw new Error(`Dashboard request failed with status ${response.status}`);
   }
+
+  return (await response.json()) as DashboardOverview;
 }
 
 export async function runStressSimulation(

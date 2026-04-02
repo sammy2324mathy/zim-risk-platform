@@ -3,20 +3,26 @@
 import { useMemo, useState, useEffect, startTransition } from "react";
 import { 
   Landmark, 
-  ShieldAlert, 
-  Scale, 
-  Briefcase, 
-  FileDown, 
-  DatabaseZap, 
-  AlertTriangle, 
   ShieldCheck, 
-  ArrowUpRight 
+  TrendingUp, 
+  AlertTriangle, 
+  Activity, 
+  ChevronRight, 
+  Database, 
+  Globe, 
+  Landmark, 
+  Zap, 
+  ShieldAlert,
+  ArrowUpRight,
+  Plus
 } from "lucide-react";
 
-import { MetricCard } from "@/components/MetricCard";
-import { ExposureTable } from "@/components/ExposureTable";
-import { StressPanel } from "@/components/StressPanel";
+import { MetricsCard } from "@/components/MetricsCard";
+import { PortfolioHeatmap } from "@/components/PortfolioHeatmap";
 import { RegulatoryTimeline } from "@/components/RegulatoryTimeline";
+import { StressPanel } from "@/components/StressPanel";
+import { ConnectedPartyAlerts } from "@/components/ConnectedPartyAlerts";
+import { ExposureTable } from "@/components/ExposureTable";
 import { getDashboardOverview } from "@/api";
 import type { DashboardOverview } from "@/types";
 
