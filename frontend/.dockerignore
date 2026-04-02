@@ -1,0 +1,12 @@
+node_modules
+node_modules_bak
+.next
+.git
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: 247 241 227;
+  --ink: 16 32 51;
+  --muted: 87 104 122;
+  --teal: 15 118 110;
+  --ember: 194 65 12;
+  --font-display: "Aptos Display", "Aptos", "Trebuchet MS", "Segoe UI Variable", sans-serif;
+  --font-mono: "Cascadia Mono", "IBM Plex Mono", Consolas, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  color: rgb(var(--ink));
+  font-family: var(--font-display);
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(194, 65, 12, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.82)),
+    rgb(var(--paper));
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(16, 32, 51, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 32, 51, 0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.4), transparent 90%);
+}
+
+@layer components {
+  .surface-card {
+    @apply rounded-panel border border-white/70 bg-white/75 shadow-panel backdrop-blur;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center rounded-full border border-teal/20 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-teal;
+  }
+
+  .section-title {
+    @apply text-xl font-semibold tracking-tight text-ink;
+  }
+
+  .section-copy {
+    @apply text-sm leading-6 text-slate-600;
+  }
+
+  .data-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500;
+  }
+
+  .value-chip {
+    @apply rounded-full border border-white/80 bg-white/70 px-3 py-1 text-xs font-medium text-slate-700;
+  }
+}

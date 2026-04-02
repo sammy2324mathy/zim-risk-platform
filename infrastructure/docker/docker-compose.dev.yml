@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # --- Core Risk Backend (FastAPI) ---
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://zimrisk:zimrisk@db:5432/zim_risk
+      - REDIS_URL=redis://cache:6379/0
+      - LOG_LEVEL=debug
+      - PORT=8000
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+    volumes:
+      - ../../backend/app:/app/app
+    networks:
+      - zimrisk-net
+
+  # --- High-Fidelity OS (Next.js) ---
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+    volumes:
+      - ../../frontend/src:/app/src
+    networks:
+      - zimrisk-net
+
+  # --- Enterprise Risk Store (TimescaleDB) ---
+  db:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      - POSTGRES_USER=zimrisk
+      - POSTGRES_PASSWORD=zimrisk
+      - POSTGRES_DB=zim_risk
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zimrisk -d zim_risk"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zimrisk-net
+    volumes:
+      - risk-data:/var/lib/postgresql/data
+
+  # --- Task Cache & Real-time Bus (Redis) ---
+  cache:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - zimrisk-net
+
+networks:
+  zimrisk-net:
+    driver: bridge
+
+volumes:
+  risk-data:

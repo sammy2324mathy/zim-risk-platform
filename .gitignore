@@ -1,0 +1,16 @@
+.DS_Store
+.next/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+node_modules/
+dist/
+build/
+.env
+coverage/
+*.db
+.tmp-tests/
+.test-db-files/
