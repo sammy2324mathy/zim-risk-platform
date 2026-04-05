@@ -1,22 +1,21 @@
-from __future__ import annotations
-
 import os
-from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
 
-class Settings(BaseSettings):
-    PROJECT_NAME: str = "Zim Risk Platform"
-    VERSION: str = "1.2.0-simple"
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", 
-        "mssql+pyodbc:///?odbc_connect=Driver={ODBC+Driver+17+for+SQL+Server};Server=DESKTOP-IMOIFKF;Database=ZIMRISK_DB;Trusted_Connection=yes;TrustServerCertificate=yes;"
-    )
-    
-    # Capital Adequacy Constants
-    DEFAULT_CAPITAL_BASE: float = 50000000.0  # $50M Tier 1 Capital
-    DEFAULT_RWA_MULTIPLIER: float = 0.65       # Standard credit RWA weight
-    CAR_MINIMUM_THRESHOLD: float = 12.5       # RBZ Guideline
+# Load environment variables from .env file
+load_dotenv()
 
-    class Config:
-        case_sensitive = True
+class Settings:
+    # SUPABASE / POSTGRES CONFIGURATION (CLOUD ONLY)
+    # Expected Format: postgresql://postgres.[USER]:[PASSWORD]@[HOST]:5432/postgres
+    DATABASE_URL = os.getenv("DATABASE_URL")
+
+    def __init__(self):
+        # SQLAlchemy requires 'postgresql://' as the protocol prefix
+        if self.DATABASE_URL and self.DATABASE_URL.startswith("postgres://"):
+            self.DATABASE_URL = self.DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+        if not self.DATABASE_URL:
+            # Default to local SQLite for development
+            self.DATABASE_URL = "sqlite:///./risk_platform.db"
 
 settings = Settings()
