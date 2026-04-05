@@ -146,7 +146,7 @@ export function StressPanel({
                 </span>
               </div>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={activeRun.distribution}>
+                <AreaChart data={Array.isArray(activeRun.distribution) ? activeRun.distribution : []}>
                   <defs>
                     <linearGradient id="stressFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#2dd4bf" stopOpacity={0.6} />

@@ -16,6 +16,18 @@ def seed_data():
     Database.initialize(settings.DATABASE_URL)
     
     with next(Database.get_db()) as db:
+        # --- CLEANUP PREVIOUS MIGRATION ATTEMPTS ---
+        logger.info("Sanitizing Enterprise Vault...")
+        try:
+            db.query(Loan).delete()
+            db.query(User).delete()
+            db.query(Role).delete()
+            db.query(Permission).delete()
+            db.query(Tenant).delete()
+            db.commit()
+        except:
+            db.rollback()
+            
         # 1. Tenants (Adding Ecocash for specialized hierarchy)
         logger.info("Seeding Institutional Tenants...")
         t_cabs = Tenant(tenant_id="CABS", name="Central African Building Society")
@@ -23,75 +35,82 @@ def seed_data():
         t_eco = Tenant(tenant_id="ECOBANK", name="Ecobank Zimbabwe Limited")
         t_ecocash = Tenant(tenant_id="ECOCASH", name="EcoCash Holdings Zimbabwe")
         db.add_all([t_cabs, t_rbz, t_eco, t_ecocash])
+        db.commit()
 
         # 2. Permissions
         logger.info("Seeding Permission Matrix...")
         p_view = Permission(id="view.dashboard", description="View institutional dashboard")
         p_ecl = Permission(id="risk.ecl.execute", description="Calculate IFRS 9 ECL")
-        p_stress = Permission(id="risk.stress.execute", description="Run Monte Carlo Stress Tests")
-        p_fraud = Permission(id="fraud.str.submit", description="Submit Suspicious Transaction Reports")
-        p_users = Permission(id="tenant.admin.manage", description="Manage institutional users")
-        db.add_all([p_view, p_ecl, p_stress, p_fraud, p_users])
+        p_calc = Permission(id="risk.ecl.override", description="IFRS 9 Stage Override")
+        p_stress = Permission(id="risk.stress.mc", description="Run Monte Carlo Stress Lab")
+        p_fraud = Permission(id="risk.fraud.monitor", description="Access Fraud Intelligence Hub")
+        p_audit = Permission(id="compliance.audit", description="Generate Regulatory XML")
+        p_admin = Permission(id="system.admin", description="Full System Administration")
+        db.add_all([p_view, p_ecl, p_calc, p_stress, p_fraud, p_audit, p_admin])
 
-        # 3. Roles (Hierarchical)
-        r_admin = Role(id="admin", name="Institutional Administrator")
-        r_admin.permissions.extend([p_view, p_ecl, p_stress, p_fraud, p_users])
-        
-        r_analyst = Role(id="analyst", name="Risk Analyst")
-        r_analyst.permissions.extend([p_view, p_ecl, p_stress])
-        
+        # 3. Roles
+        logger.info("Defining Hierarchy Roles...")
+        r_admin = Role(id="admin", name="Tenant Administrator")
+        r_analyst = Role(id="analyst", name="Risk Specialist")
         r_compliance = Role(id="compliance", name="Compliance Officer")
-        r_compliance.permissions.extend([p_view, p_fraud])
+        r_auditor = Role(id="auditor", name="External Auditor")
 
-        db.add_all([r_admin, r_analyst, r_compliance])
+        r_admin.permissions.extend([p_view, p_ecl, p_calc, p_stress, p_fraud, p_audit, p_admin])
+        r_analyst.permissions.extend([p_view, p_ecl, p_stress, p_fraud])
+        r_compliance.permissions.extend([p_view, p_fraud, p_audit])
+        r_auditor.permissions.extend([p_view, p_audit])
+        db.add_all([r_admin, r_analyst, r_compliance, r_auditor])
 
-        # 4. Users (Hierarchical Collaboration per Tenant)
-        logger.info("Seeding Collaborative Personas...")
-
-        # --- ECOCASH HIERARCHY ---
+        # 4. Users (Simulating multi-tenant personas)
+        logger.info("Establishing Persona Identities...")
         u_ecocash_admin = User(username="admin_ecocash", email="governance@ecocash.co.zw", hashed_password="hashed_zimrisk123", tenant_id="ECOCASH")
         u_ecocash_admin.roles.append(r_admin)
         
         u_ecocash_analyst = User(username="analyst_ecocash", email="risk_desk@ecocash.co.zw", hashed_password="hashed_zimrisk123", tenant_id="ECOCASH")
         u_ecocash_analyst.roles.append(r_analyst)
 
-        # --- CABS HIERARCHY ---
+        # CABS HIERARCHY
         u_cabs_admin = User(username="admin_cabs", email="admin@cabs.co.zw", hashed_password="hashed_zimrisk123", tenant_id="CABS")
         u_cabs_admin.roles.append(r_admin)
 
-        # --- RBZ SUPERVISORY HIERARCHY ---
+        # RBZ SUPERVISORY HIERARCHY
         u_rbz_supervisor = User(username="supervisor_rbz", email="governor_desk@rbz.co.zw", hashed_password="hashed_zimrisk123", tenant_id="RBZ")
         u_rbz_supervisor.roles.append(r_admin)
-
         db.add_all([u_ecocash_admin, u_ecocash_analyst, u_cabs_admin, u_rbz_supervisor])
 
-        # 5. Core Data Artifacts
-        db.add(MacroScenario(
-            scenario_id="baseline", 
-            name="Q2 Baseline 2026", 
-            description="Baseline for 2026 Q2 economic trajectory",
-            zig_usd_rate=13.5, 
-            usd_funding_gap=0.15,
-            inflation_rate=0.18, 
-            agricultural_output_index=1.02, 
-            gdp_growth=0.035, 
-            unemployment_rate=0.08,
-            severity=0.2,
-            confidence=0.95
-        ))
-        
-        db.add(StressScenario(
+        # 5. Macro & Stress Scenarios
+        logger.info("Calibrating Simulation Scenarios...")
+        macro_base = MacroScenario(
+            scenario_id="zim_base_2026",
+            name="Zimbabwe Baseline Q2",
+            description="Moderate growth with stable ZiG currency drift.",
+            zig_usd_rate=13.5, usd_funding_gap=0.08, inflation_rate=0.05,
+            agricultural_output_index=1.0, gdp_growth=0.03, unemployment_rate=0.15,
+            severity=0.0, confidence=0.95
+        )
+        macro_zig_shock = MacroScenario(
+            scenario_id="zig_devalue_shock",
+            name="ZiG Volatility Event",
+            description="Sudden 40% devaluation against USD.",
+            zig_usd_rate=19.5, usd_funding_gap=0.15, inflation_rate=0.25,
+            agricultural_output_index=0.8, gdp_growth=-0.02, unemployment_rate=0.18,
+            severity=0.8, confidence=0.70
+        )
+        db.add_all([macro_base, macro_zig_shock])
+
+        stress_zig = StressScenario(
             scenario_id="zig_shock",
-            name="ZiG Devaluation (40%)",
-            description="Aggressive currency reset scenario with 40% devaluation.",
-            fx_shock=0.4, inflation_shock=0.2, default_shock=0.15, liquidity_shock=0.1, correlation_bias=0.5
-        ))
-        db.add(StressScenario(
+            name="Currency Volatility Shock",
+            description="High ZiG/USD fluctuation impact on Tier 1 capital.",
+            fx_shock=0.4, inflation_shock=0.2, default_shock=0.1, liquidity_shock=0.15, correlation_bias=0.3
+        )
+        stress_liq = StressScenario(
             scenario_id="liquidity_drift",
             name="Liquidity Squeeze",
             description="Systemic USD funding gap expansion.",
             fx_shock=0.1, inflation_shock=0.05, default_shock=0.05, liquidity_shock=0.4, correlation_bias=0.2
-        ))
+        )
+        db.add_all([stress_zig, stress_liq])
 
         # Seed Diversified Portfolios
         sectors = ["Agriculture", "Mining", "Manufacturing", "FinTech", "Retail"]

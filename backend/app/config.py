@@ -6,7 +6,10 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Zim Risk Platform"
     VERSION: str = "1.2.0-simple"
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./risk_platform.db")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL", 
+        "mssql+pyodbc:///?odbc_connect=Driver={ODBC+Driver+17+for+SQL+Server};Server=DESKTOP-IMOIFKF;Database=ZIMRISK_DB;Trusted_Connection=yes;TrustServerCertificate=yes;"
+    )
     
     # Capital Adequacy Constants
     DEFAULT_CAPITAL_BASE: float = 50000000.0  # $50M Tier 1 Capital

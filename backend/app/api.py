@@ -10,6 +10,7 @@ from app.models import Loan, MacroScenario, StressScenario, StressRun, FXRate, R
 from app.schemas import LoanPayload, MacroScenarioPayload, StressScenarioPayload, StressRunRequest, RegulatoryUpdatePayload, LoginPayload
 from app.engines import IFRS9Engine, StressEngine
 from app.services import ReportingService
+import json
 from app.dependencies import get_current_active_user, get_tenant_id, PermissionChecker, SECRET_KEY, ALGORITHM
 
 router = APIRouter()
@@ -24,7 +25,7 @@ def login(payload: LoginPayload, db: Session = Depends(Database.get_db)):
     user = db.query(User).filter(User.username == payload.username).first()
     
     # ⚡ MASTER EASY ACCESS: Allow one-click login for demo accounts without password
-    DEMO_USERS = ["admin_cabs", "admin_ecobank", "supervisor_rbz"]
+    DEMO_USERS = ["admin_cabs", "admin_ecocash", "analyst_ecocash", "supervisor_rbz"]
     
     is_demo = payload.username in DEMO_USERS
     
@@ -87,7 +88,7 @@ def get_overview(
             "connected_party_alerts": [{"group": "Systemic Group [Alpha]", "exposure": total_exposure * 0.12, "threshold": total_exposure * 0.15}]
         },
         "exposures": ecls,
-        "stress": { "scenarios": stress_scenarios, "runs": [{**jsonable_encoder(run), "breach": run.breach_probability > 0.05} for run in stress_runs] },
+        "stress": { "scenarios": stress_scenarios, "runs": [{**jsonable_encoder(run), "distribution": json.loads(run.distribution), "breach": run.breach_probability > 0.05} for run in stress_runs] },
         "regulations": { "updates": regs, "rulebook": { "CAR_MIN": {"value": "12.5%", "source": "RBZ Guideline 02/2024"}, "CONCENTRATION_LIMIT": {"value": "15.0%", "source": "IPEC Circular 01/2021"} } },
         "fx_rates": fx,
         "macro_scenario": baseline_macro
@@ -123,13 +124,15 @@ def run_stress(payload: StressRunRequest, db: Session = Depends(Database.get_db)
     run = StressRun(
         tenant_id=user.tenant_id, scenario_id=scenario.scenario_id, scenario_name=scenario.name, macro_scenario_id=macro.scenario_id or "default",
         paths=payload.paths, expected_loss=result['expected_loss'], mean_capital_ratio=14.8 - (result['expected_loss'] / 1000000),
-        percentile_5=12.2, percentile_50=14.8, percentile_95=result['var_95'] / 1000000, breach_probability=result['breach_probability'], distribution="{}"
+        percentile_5=12.2, percentile_50=14.8, percentile_95=result['var_95'] / 1000000, breach_probability=result['breach_probability'],
+        distribution=json.dumps(result['distribution'])
     )
     if payload.persist:
         db.add(run)
         db.commit()
         db.refresh(run)
-    return run
+    # Return with parsed distribution for immediate hook
+    return {**jsonable_encoder(run), "distribution": result['distribution']}
 
 # --- Fraud & Regulations ---
 @router.get("/fraud/graph")

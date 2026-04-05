@@ -6,6 +6,7 @@ loguru==0.7.3
 python-multipart==0.0.9
 sqlalchemy==2.0.38
 # psycopg2-binary==2.9.10 (Not required for SQLite)
+pyodbc
 numpy==2.2.3
 pandas==2.2.3
 scikit-learn==1.6.1

@@ -19,8 +19,8 @@ Base = declarative_base()
 role_permissions = Table(
     "role_permissions",
     Base.metadata,
-    Column("role_id", String, ForeignKey("roles.id"), primary_key=True),
-    Column("permission_id", String, ForeignKey("permissions.id"), primary_key=True),
+    Column("role_id", String(50), ForeignKey("roles.id"), primary_key=True),
+    Column("permission_id", String(100), ForeignKey("permissions.id"), primary_key=True),
 )
 
 # Association Table for Many-to-Many User-Role
@@ -28,29 +28,29 @@ user_roles = Table(
     "user_roles",
     Base.metadata,
     Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
-    Column("role_id", String, ForeignKey("roles.id"), primary_key=True),
+    Column("role_id", String(50), ForeignKey("roles.id"), primary_key=True),
 )
 
 class Tenant(Base):
     __tablename__ = "tenants"
-    tenant_id = Column(String, primary_key=True) # e.g., "CABS", "ECOBANK", "RBZ"
-    name = Column(String, nullable=False)
-    registration_no = Column(String, nullable=True)
+    tenant_id = Column(String(50), primary_key=True) # e.g., "CABS", "ECOBANK", "RBZ"
+    name = Column(String(255), nullable=False)
+    registration_no = Column(String(50), nullable=True)
     is_regulator = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(Text, server_default=func.current_timestamp())
+    created_at = Column(String(50), server_default=func.current_timestamp())
     updated_at = Column(Text, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String, unique=True, index=True, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    tenant_id = Column(String, ForeignKey("tenants.tenant_id"), nullable=False, index=True)
+    username = Column(String(50), unique=True, index=True, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id"), nullable=False, index=True)
     is_active = Column(Boolean, default=True)
     mfa_enabled = Column(Boolean, default=False)
-    created_at = Column(Text, server_default=func.current_timestamp())
+    created_at = Column(String(50), server_default=func.current_timestamp())
     updated_at = Column(Text, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
     
     # Relationships
@@ -58,8 +58,8 @@ class User(Base):
 
 class Role(Base):
     __tablename__ = "roles"
-    id = Column(String, primary_key=True) # e.g., "admin", "risk_manager", "compliance", "regulator"
-    name = Column(String, nullable=False)
+    id = Column(String(50), primary_key=True) # e.g., "admin", "risk_manager", "compliance", "regulator"
+    name = Column(String(100), nullable=False)
     description = Column(Text)
     
     # Relationships
@@ -68,7 +68,7 @@ class Role(Base):
 
 class Permission(Base):
     __tablename__ = "permissions"
-    id = Column(String, primary_key=True) # e.g., "risk.ecl.execute", "fraud.str.create"
+    id = Column(String(100), primary_key=True) # e.g., "risk.ecl.execute", "fraud.str.create"
     description = Column(Text)
     
     # Relationships
@@ -78,53 +78,53 @@ class Permission(Base):
 
 class Loan(Base):
     __tablename__ = "loans"
-    loan_id = Column(String, primary_key=True)
-    tenant_id = Column(String, ForeignKey("tenants.tenant_id"), nullable=False, index=True)
-    customer_name = Column(String, nullable=False, index=True)
-    sector = Column(String, nullable=False, index=True)
-    currency = Column(String, nullable=False) # ZiG, USD, ZWL
-    product_type = Column(String, nullable=False)
+    loan_id = Column(String(50), primary_key=True)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id"), nullable=False, index=True)
+    customer_name = Column(String(255), nullable=False, index=True)
+    sector = Column(String(100), nullable=False, index=True)
+    currency = Column(String(10), nullable=False) # ZiG, USD, ZWL
+    product_type = Column(String(100), nullable=False)
     days_past_due = Column(Integer, nullable=False, default=0)
     outstanding_principal = Column(Float, nullable=False)
     committed_limit = Column(Float, nullable=False)
     interest_rate = Column(Float, nullable=False)
     collateral_value = Column(Float, nullable=False)
-    collateral_type = Column(String, nullable=False)
+    collateral_type = Column(String(100), nullable=False)
     expected_recovery_cost = Column(Float, nullable=False, default=0.0)
     tenor_months = Column(Integer, nullable=False)
-    branch_code = Column(String, nullable=False, index=True)
+    branch_code = Column(String(50), nullable=False, index=True)
     watchlist = Column(Integer, nullable=False, default=0)
-    connected_party_group = Column(String, nullable=True, index=True)
-    created_at = Column(Text, server_default=func.current_timestamp())
+    connected_party_group = Column(String(255), nullable=True, index=True)
+    created_at = Column(String(50), server_default=func.current_timestamp())
     updated_at = Column(Text, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 class ECLResult(Base):
     __tablename__ = "ecl_results"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    loan_id = Column(String, ForeignKey("loans.loan_id"), nullable=False, index=True)
-    tenant_id = Column(String, ForeignKey("tenants.tenant_id"), nullable=False, index=True)
+    loan_id = Column(String(50), ForeignKey("loans.loan_id"), nullable=False, index=True)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id"), nullable=False, index=True)
     probability_of_default = Column(Float, nullable=False)
     loss_given_default = Column(Float, nullable=False)
     exposure_at_default = Column(Float, nullable=False)
     stage = Column(Integer, nullable=False) # 1, 2, or 3
     total_ecl = Column(Float, nullable=False)
-    calculated_at = Column(Text, server_default=func.current_timestamp())
+    calculated_at = Column(String(50), server_default=func.current_timestamp())
 
 class FraudAlert(Base):
     __tablename__ = "fraud_alerts"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(String, ForeignKey("tenants.tenant_id"), nullable=False, index=True)
-    entity_id = Column(String, nullable=False, index=True) # Loan ID or Customer Group
-    alert_type = Column(String, nullable=False) # e.g., "Circular Lending", "High Exposure (>15%)"
-    severity = Column(String, nullable=False) # High, Medium, Low
-    status = Column(String, default="Pending") # Pending, Investigating, Closed, STR_Generated
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id"), nullable=False, index=True)
+    entity_id = Column(String(50), nullable=False, index=True) # Loan ID or Customer Group
+    alert_type = Column(String(100), nullable=False) # e.g., "Circular Lending", "High Exposure (>15%)"
+    severity = Column(String(20), nullable=False) # High, Medium, Low
+    status = Column(String(50), default="Pending") # Pending, Investigating, Closed, STR_Generated
     details = Column(Text)
-    created_at = Column(Text, server_default=func.current_timestamp())
+    created_at = Column(String(50), server_default=func.current_timestamp())
 
 class MacroScenario(Base):
     __tablename__ = "macro_scenarios"
-    scenario_id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
+    scenario_id = Column(String(50), primary_key=True)
+    name = Column(String(100), nullable=False)
     description = Column(Text, nullable=False)
     zig_usd_rate = Column(Float, nullable=False)
     usd_funding_gap = Column(Float, nullable=False)
@@ -134,29 +134,29 @@ class MacroScenario(Base):
     unemployment_rate = Column(Float, nullable=False)
     severity = Column(Float, nullable=False)
     confidence = Column(Float, nullable=False)
-    created_at = Column(Text, server_default=func.current_timestamp())
+    created_at = Column(String(50), server_default=func.current_timestamp())
     updated_at = Column(Text, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 class StressScenario(Base):
     __tablename__ = "stress_scenarios"
-    scenario_id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
+    scenario_id = Column(String(50), primary_key=True)
+    name = Column(String(100), nullable=False)
     description = Column(Text, nullable=False)
     fx_shock = Column(Float, nullable=False)
     inflation_shock = Column(Float, nullable=False)
     default_shock = Column(Float, nullable=False)
     liquidity_shock = Column(Float, nullable=False)
     correlation_bias = Column(Float, nullable=False)
-    created_at = Column(Text, server_default=func.current_timestamp())
+    created_at = Column(String(50), server_default=func.current_timestamp())
     updated_at = Column(Text, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 class StressRun(Base):
     __tablename__ = "stress_runs"
     run_id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(String, ForeignKey("tenants.tenant_id"), nullable=False, index=True)
-    scenario_id = Column(String, ForeignKey("stress_scenarios.scenario_id"), nullable=False)
-    scenario_name = Column(String, nullable=False)
-    macro_scenario_id = Column(String, ForeignKey("macro_scenarios.scenario_id"), nullable=False)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id"), nullable=False, index=True)
+    scenario_id = Column(String(50), ForeignKey("stress_scenarios.scenario_id"), nullable=False)
+    scenario_name = Column(String(255), nullable=False)
+    macro_scenario_id = Column(String(50), ForeignKey("macro_scenarios.scenario_id"), nullable=False)
     paths = Column(Integer, nullable=False) # Monte Carlo path count
     expected_loss = Column(Float, nullable=False)
     mean_capital_ratio = Column(Float, nullable=False)
@@ -165,29 +165,29 @@ class StressRun(Base):
     percentile_95 = Column(Float, nullable=False)
     breach_probability = Column(Float, nullable=False)
     distribution = Column(Text, nullable=False) # JSON distribution of outcomes
-    created_at = Column(Text, server_default=func.current_timestamp())
+    created_at = Column(String(50), server_default=func.current_timestamp())
     __table_args__ = (Index('idx_stress_runs_tenant_created', 'tenant_id', text('created_at DESC')),)
 
 class RegulatoryUpdate(Base):
     __tablename__ = "regulatory_updates"
-    update_id = Column(String, primary_key=True)
-    source = Column(String, nullable=False, index=True) # e.g., "RBZ", "Gazette"
-    title = Column(String, nullable=False)
-    published_on = Column(String, nullable=False)
-    effective_on = Column(String, nullable=False)
-    theme = Column(String, nullable=False, index=True) # e.g., "Capital Adequacy", "AML"
-    severity = Column(String, nullable=False)
+    update_id = Column(String(50), primary_key=True)
+    source = Column(String(100), nullable=False, index=True) # e.g., "RBZ", "Gazette"
+    title = Column(String(255), nullable=False)
+    published_on = Column(String(50), nullable=False)
+    effective_on = Column(String(50), nullable=False)
+    theme = Column(String(100), nullable=False, index=True) # e.g., "Capital Adequacy", "AML"
+    severity = Column(String(20), nullable=False)
     summary = Column(Text, nullable=False)
     extracted_rules = Column(Text, nullable=False) # NLP parsed rules
-    created_at = Column(Text, server_default=func.current_timestamp())
+    created_at = Column(String(50), server_default=func.current_timestamp())
 
 class FXRate(Base):
     __tablename__ = "fx_rates"
     rate_id = Column(Integer, primary_key=True, autoincrement=True)
-    pair = Column(String, nullable=False, index=True) # e.g., "ZiG/USD"
-    source = Column(String, nullable=False)
+    pair = Column(String(20), nullable=False, index=True) # e.g., "ZiG/USD"
+    source = Column(String(100), nullable=False)
     rate = Column(Float, nullable=False)
     confidence = Column(Float, nullable=False)
-    captured_at = Column(String, nullable=False)
-    created_at = Column(Text, server_default=func.current_timestamp())
+    captured_at = Column(String(50), nullable=False)
+    created_at = Column(String(50), server_default=func.current_timestamp())
     __table_args__ = (Index('idx_fx_rates_captured', 'pair', text('captured_at DESC')),)

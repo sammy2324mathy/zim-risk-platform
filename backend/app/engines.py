@@ -105,10 +105,19 @@ class StressEngine:
         # Total ECL distribution under stress
         outcomes = total_baseline * shock_vector * (1 + (fx_vector - 1) * 0.5)
         
+        # Sample distribution for visualization (Recharts format)
+        sorted_outcomes = np.sort(outcomes)
+        indices = np.linspace(0, len(outcomes) - 1, 50, dtype=int)
+        sampled = [{
+            "capital_ratio": float(14.8 - (sorted_outcomes[i] / 1000000)), 
+            "label": f"P{int((i/len(outcomes))*100)}"
+        } for i in indices]
+        
         return {
             "scenario_id": scenario.scenario_id,
             "expected_loss": float(np.mean(outcomes)),
             "var_95": float(np.percentile(outcomes, 95)),
             "tail_risk": float(np.max(outcomes)),
-            "breach_probability": float(np.sum(outcomes > 15000000) / paths)
+            "breach_probability": float(np.sum(outcomes > 15000000) / paths),
+            "distribution": sampled
         }
