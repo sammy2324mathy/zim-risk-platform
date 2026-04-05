@@ -1,6 +1,6 @@
-import { FraudGraphPage } from "@/pages/FraudGraph";
+import { FraudGraph } from "@/views/FraudGraph";
 
 export default function FraudPage() {
-  return <FraudGraphPage />;
+  return <FraudGraph />;
 }
 

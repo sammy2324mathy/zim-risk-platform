@@ -1,6 +1,6 @@
-import { StressTestingPage } from "@/pages/StressTesting";
+import { StressTesting } from "@/views/StressTesting";
 
 export default function StressPage() {
-  return <StressTestingPage />;
+  return <StressTesting />;
 }
 

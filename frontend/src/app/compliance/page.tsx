@@ -1,6 +1,6 @@
-import { ComplianceCenterPage } from "@/pages/ComplianceCenter";
+import { ComplianceCenter } from "@/views/ComplianceCenter";
 
 export default function CompliancePage() {
-  return <ComplianceCenterPage />;
+  return <ComplianceCenter />;
 }
 

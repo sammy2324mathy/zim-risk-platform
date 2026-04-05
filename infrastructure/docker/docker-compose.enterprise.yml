@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # -- Unified Identity (Auth/RBAC) --
+  identity-service:
+    build: 
+      context: ../../backend
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment:
+      - DATABASE_URL=postgresql://zimrisk:zimrisk@pg_db:5432/zim_risk_db
+      - SERVICE_NAME=identity
+    networks:
+      - zimrisk-net
+    depends_on:
+      - pg_db
+
+  # -- Primary Relational DB (PostgreSQL PG15) --
+  pg_db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=zimrisk
+      - POSTGRES_PASSWORD=zimrisk
+      - POSTGRES_DB=zim_risk_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - zimrisk-net
+
+  # -- Graph Relationship Hub (Neo4j for Fraud) --
+  graph_db:
+    image: neo4j:5-community
+    environment:
+      - NEO4J_AUTH=neo4j/password
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - zimrisk-net
+
+  # -- Event Bus (RabbitMQ for Async ECL/Stress) --
+  event_bus:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - zimrisk-net
+
+  # -- High-Fidelity OS (Next.js) --
+  frontend:
+    build: 
+      context: ../../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    networks:
+      - zimrisk-net
+
+networks:
+  zimrisk-net:
+    driver: bridge
+
+volumes:
+  pg_data:
+  neo4j_data:

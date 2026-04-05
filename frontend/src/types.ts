@@ -33,6 +33,7 @@ export type StressDistributionPoint = {
 };
 
 export type StressRun = {
+  run_id?: number;
   scenario_id: string;
   scenario_name: string;
   paths: number;

@@ -1,6 +1,5 @@
-import { DashboardPage } from "@/pages/Dashboard";
+import LandingView from "@/views/Landing";
 
-export default function HomePage() {
-  return <DashboardPage />;
+export default function Home() {
+  return <LandingView />;
 }
-

@@ -5,8 +5,9 @@ pydantic-settings==2.8.1
 loguru==0.7.3
 python-multipart==0.0.9
 sqlalchemy==2.0.38
-psycopg2-binary==2.9.10
+# psycopg2-binary==2.9.10 (Not required for SQLite)
 numpy==2.2.3
 pandas==2.2.3
 scikit-learn==1.6.1
 reportlab==4.3.1
+PyJWT==2.10.1

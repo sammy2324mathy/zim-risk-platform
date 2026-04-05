@@ -1,6 +1,5 @@
-import { ECLCalculatorPage } from "@/pages/ECLCalculator";
+import { ECLCalculator } from "@/views/ECLCalculator";
 
 export default function ECLPage() {
-  return <ECLCalculatorPage />;
+  return <ECLCalculator />;
 }
-

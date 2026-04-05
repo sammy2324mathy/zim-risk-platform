@@ -1,324 +1,192 @@
 "use client";
 
-import { AlertTriangle, ArrowUpRight, BarChart3, Briefcase, DatabaseZap, FileDown, Landmark, Scale, ShieldAlert, ShieldCheck } from "lucide-react";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
+import { 
+  ShieldCheck, 
+  Activity, 
+  LayoutDashboard, 
+  Calculator, 
+  Atom, 
+  Zap, 
+  Users, 
+  BrainCircuit,
+  LogOut,
+  Bell,
+  Search,
+  Command,
+  Settings,
+  ShieldAlert,
+  Archive,
+  User
+} from "lucide-react";
 
-import { ExposureTable } from "@/components/ExposureTable";
-import { MetricCard } from "@/components/MetricCard";
-import { RegulatoryTimeline } from "@/components/RegulatoryTimeline";
-import { StressPanel } from "@/components/StressPanel";
-import { getDashboardOverview } from "@/api";
+import { DashboardHub } from "@/views/Dashboard";
+import { ECLCalculator } from "@/views/ECLCalculator";
+import { StressTesting } from "@/views/StressTesting";
+import { ComplianceCenter } from "@/views/ComplianceCenter";
+import { FraudGraph } from "@/views/FraudGraph";
+import { MLDevelopment } from "@/views/MLDevelopment";
+import { getDashboardOverview, logout } from "@/api";
 import type { DashboardOverview } from "@/types";
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
-
-const percentFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 1,
-  minimumFractionDigits: 1,
-});
-
 export function DashboardShell() {
+  const [activeView, setActiveView] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
-  const [selectedScenarioId, setSelectedScenarioId] = useState("");
-
-  const refresh = async () => {
-    const data = await getDashboardOverview();
-    setOverview(data);
-    if (!selectedScenarioId && data.stress.runs.length > 0) {
-      setSelectedScenarioId(data.stress.runs[0].scenario_id);
-    }
-  };
-
-  const handleExport = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/compliance/report/compliance`);
-      if (!response.ok) throw new Error("Export failed");
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `ZimRisk_ComplianceBrief_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Export error:", error);
-      alert("Failed to generate compliance report. Please ensure the backend is running.");
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;
-
     startTransition(() => {
-      void getDashboardOverview().then((data) => {
+      getDashboardOverview().then((data) => {
         if (cancelled) return;
         setOverview(data);
-        setSelectedScenarioId(data.stress.runs[0]?.scenario_id ?? "");
+      }).catch((err) => {
+        console.error("Auth session expired or invalid:", err);
       });
     });
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  const topSector = useMemo(() => overview?.summary.sector_distribution[0], [overview]);
+  const isRegulator = overview?.tenant_id === "RBZ";
 
-  if (!overview) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-7xl items-center px-6 py-16">
-        <div className="surface-card w-full p-10">
-          <p className="eyebrow">Booting Platform</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-ink">
-            Loading portfolio analytics and regulatory signals...
-          </h1>
-        </div>
-      </main>
-    );
-  }
+  const NAV_ITEMS = [
+    { id: "dashboard", label: "Dashboard Hub", icon: LayoutDashboard, role: "any" },
+    { id: "ecl", label: "ECL Workshop", icon: Calculator, role: "bank" },
+    { id: "stress", label: "Stress Lab", icon: Atom, role: "any" },
+    { id: "fraud", label: "Fraud Intelligence", icon: Users, role: "any" },
+    { id: "compliance", label: "Compliance Center", icon: ShieldCheck, role: "any" },
+    { id: "ml", label: "ML Workbench", icon: BrainCircuit, role: "admin" },
+  ];
+
+  // Filter based on rights
+  const filteredNav = NAV_ITEMS.filter(item => {
+    if (item.role === "bank" && isRegulator) return false;
+    if (item.role === "admin" && !isRegulator) return false;
+    return true;
+  });
+
+  const renderView = () => {
+    switch (activeView) {
+      case "dashboard": return <DashboardHub />;
+      case "ecl": return <ECLCalculator />;
+      case "stress": return <StressTesting />;
+      case "compliance": return <ComplianceCenter />;
+      case "fraud": return <FraudGraph />;
+      case "ml": return <MLDevelopment />;
+      default: return <DashboardHub />;
+    }
+  };
+
+  if (!overview) return (
+    <div className="flex h-screen w-screen items-center justify-center bg-slate-950 font-sans">
+       <div className="text-center space-y-6">
+          <div className="size-16 bg-blue-600 rounded-lg mx-auto flex items-center justify-center animate-pulse">
+             <ShieldCheck className="h-8 w-8 text-white" />
+          </div>
+          <div className="space-y-2">
+             <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em]">Synching Institutional identity...</p>
+             <h2 className="text-white text-sm font-bold opacity-30 italic">Statutory_Encryption_Handshake_Established</h2>
+          </div>
+       </div>
+    </div>
+  );
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-      <section className="grid gap-6 lg:grid-cols-[1.3fr,0.9fr]">
-        <div className="surface-card overflow-hidden p-7">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="eyebrow">Zimbabwe Risk Infrastructure</span>
-              <span className="value-chip">Institution: {overview.institution}</span>
-              <span className="value-chip">
-                Macro confidence: {percentFormatter.format(overview.summary.macro_confidence * 100)}%
-              </span>
-            </div>
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-2 rounded-xl bg-ink px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-slate-800 hover:-translate-y-0.5 active:translate-y-0"
-            >
-              <FileDown className="h-4 w-4" />
-              Export Compliance Brief
-            </button>
-          </div>
-          <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr,0.8fr]">
-            <div className="space-y-5">
-              <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-ink lg:text-6xl">
-                Compliance, capital, and exposure intelligence built for Zimbabwean banking volatility.
-              </h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-600">
-                This foundation build combines IFRS 9 loan staging, stress testing, connected-party exposure monitoring,
-                and machine-readable regulatory updates in one operating surface.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <span className="value-chip">Real-time FX overlays</span>
-                <span className="value-chip">Connected-party concentration alerts</span>
-                <span className="value-chip">Offline-friendly dashboard fallback</span>
+    <div className="flex h-screen bg-[#fcfdfe] overflow-hidden font-sans">
+      {/* Sidebar Navigation */}
+      <aside className={`bg-slate-950 text-white transition-all duration-300 flex flex-col relative ${sidebarOpen ? 'w-72' : 'w-20'}`}>
+        <div className="p-6 flex items-center gap-4 mb-8">
+           <div className={`size-10 rounded-sm flex items-center justify-center shadow-lg transition-colors ${isRegulator ? 'bg-rose-600 shadow-rose-600/20' : 'bg-blue-600 shadow-blue-600/20'}`}>
+              {isRegulator ? <ShieldAlert className="h-6 w-6 text-white" /> : <Zap className="h-6 w-6 text-white" />}
+           </div>
+           {sidebarOpen && (
+             <div className="animate-in fade-in duration-500">
+                <h1 className="text-sm font-black tracking-[0.2em] uppercase leading-none">{overview.institution.split(' ')[0]} Risk.</h1>
+                <p className={`text-[8px] font-bold tracking-[0.1em] mt-1 uppercase ${isRegulator ? 'text-rose-400' : 'text-blue-400'}`}>
+                  {isRegulator ? 'Regulator_Control' : 'Bank_Operating_OS'}
+                </p>
+             </div>
+           )}
+        </div>
+
+        <nav className="flex-1 px-4 space-y-4">
+           {filteredNav.map((item) => (
+             <button
+              key={item.id}
+              onClick={() => setActiveView(item.id)}
+              className={`w-full flex items-center gap-4 p-3 rounded transition-all group ${activeView === item.id ? 'bg-white/10 text-white shadow-inner' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+             >
+                <item.icon className={`h-5 w-5 transition-transform group-hover:scale-110 ${activeView === item.id ? (isRegulator ? 'text-rose-500' : 'text-blue-500') : ''}`} />
+                {sidebarOpen && <span className="text-[10px] font-bold uppercase tracking-widest">{item.label}</span>}
+             </button>
+           ))}
+        </nav>
+
+        <div className="p-6 border-t border-white/5 space-y-4">
+           {isRegulator && sidebarOpen && (
+             <div className="mb-4 p-4 rounded bg-rose-500/10 border border-rose-500/20">
+                <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest leading-none mb-1">National Visibility: ACTIVE</p>
+                <p className="text-[8px] text-rose-500/60 font-medium leading-relaxed italic">Synchronized stream across all commercial nodes.</p>
+             </div>
+           )}
+           <button className="flex items-center gap-4 text-slate-600 hover:text-white transition-colors w-full px-2">
+              <Archive className="h-4 w-4" />
+              {sidebarOpen && <span className="text-[10px] font-bold uppercase tracking-widest">Master Audit_ Logs</span>}
+           </button>
+           <button 
+            onClick={logout}
+            className="flex items-center gap-4 text-rose-500 hover:text-rose-400 transition-colors w-full px-2 mt-4"
+           >
+              <LogOut className="h-4 w-4" />
+              {sidebarOpen && <span className="text-[10px] font-bold uppercase tracking-widest">Sever Session</span>}
+           </button>
+        </div>
+      </aside>
+
+      {/* Workspace Area */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top Operational bar */}
+        <header className="h-16 border-b border-slate-100 bg-white flex items-center justify-between px-8 relative z-20">
+           <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-sm border border-slate-100">
+                 <Command className="h-3.5 w-3.5 text-slate-400" />
+                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active_Desk: </span>
+                 <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest italic">{NAV_ITEMS.find(n => n.id === activeView)?.label || 'Hub'}</span>
               </div>
-            </div>
-            <div className="rounded-[30px] bg-ink p-5 text-white">
-              <p className="data-label text-white/60">Active Macro Scenario</p>
-              <h2 className="mt-3 text-2xl font-semibold">{overview.macro_scenario.name}</h2>
-              <p className="mt-3 text-sm leading-6 text-white/75">
-                {overview.macro_scenario.description}
-              </p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="data-label text-white/60">ZiG / USD</p>
-                  <p className="mt-2 text-2xl font-semibold">{overview.macro_scenario.zig_usd_rate}</p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="data-label text-white/60">Inflation</p>
-                  <p className="mt-2 text-2xl font-semibold">
-                    {percentFormatter.format(overview.macro_scenario.inflation_rate * 100)}%
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="data-label text-white/60">Agri Output</p>
-                  <p className="mt-2 text-2xl font-semibold">
-                    {percentFormatter.format(overview.macro_scenario.agricultural_output_index * 100)}%
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="data-label text-white/60">GDP Growth</p>
-                  <p className="mt-2 text-2xl font-semibold">
-                    {percentFormatter.format(overview.macro_scenario.gdp_growth * 100)}%
-                  </p>
-                </div>
+           </div>
+
+           <div className="flex items-center gap-6">
+              <div className="relative group hidden md:block">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                 <input 
+                  placeholder={isRegulator ? "Search across National Corridors..." : "Sync portfolio artifact..."} 
+                  className="h-9 w-64 rounded-sm border border-slate-100 bg-slate-50/50 pl-10 pr-4 text-[10px] font-bold uppercase tracking-widest outline-none focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 transition-all placeholder:text-slate-300 italic"
+                 />
               </div>
-            </div>
-          </div>
+              <div className="h-4 w-px bg-slate-200" />
+              <button className="relative p-2 text-slate-400 hover:text-slate-900 transition-colors active:scale-110">
+                 <Bell className="h-5 w-5" />
+                 <span className="absolute top-1.5 right-1.5 size-2 bg-rose-500 rounded-full border-2 border-white" />
+              </button>
+              <div className="flex items-center gap-3 pl-2 group cursor-pointer">
+                 <div className="text-right hidden sm:block">
+                    <p className="text-[10px] font-black text-slate-900 uppercase leading-none mb-1">{overview.institution}</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{isRegulator ? 'Supervisor_Root' : 'Admin_Access'}</p>
+                 </div>
+                 <div className="size-10 rounded-full bg-slate-950 flex items-center justify-center border border-white/10 shadow-lg shadow-slate-900/10 group-hover:scale-105 transition-transform">
+                    <User className="h-5 w-5 text-white" />
+                 </div>
+              </div>
+           </div>
+        </header>
+
+        {/* View Surface */}
+        <div className="flex-1 overflow-y-auto bg-[#fcfdfe] p-8 custom-scrollbar relative">
+           <div className="max-w-[1700px] mx-auto animate-in fade-in slide-in-from-bottom-3 duration-1000">
+              {renderView()}
+           </div>
         </div>
-
-        <div className="grid gap-6">
-          <div className="surface-card p-6">
-            <div className="flex items-center gap-3">
-              <DatabaseZap className="h-5 w-5 text-teal" />
-              <p className="data-label">Market Inputs</p>
-            </div>
-            <div className="mt-5 grid gap-3">
-              {overview.fx_rates.map((rate) => (
-                <div
-                  key={`${rate.pair}-${rate.source}`}
-                  className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-semibold text-ink">{rate.pair}</p>
-                    <p className="text-sm font-medium text-ember">{rate.rate.toFixed(2)}</p>
-                  </div>
-                  <p className="mt-2 text-sm text-slate-600">
-                    {rate.source} • confidence {percentFormatter.format(rate.confidence * 100)}%
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="surface-card p-6">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-ember" />
-              <p className="data-label">Concentration Alerts</p>
-            </div>
-            <div className="mt-5 grid gap-3">
-              {overview.summary.connected_party_alerts.length > 0 ? (
-                overview.summary.connected_party_alerts.map((alert) => (
-                  <div key={alert.group} className="rounded-2xl bg-amber-50 px-4 py-4">
-                    <p className="font-semibold text-ink">{alert.group}</p>
-                    <p className="mt-2 text-sm text-slate-600">
-                      Exposure {currencyFormatter.format(alert.exposure)} against a threshold of{" "}
-                      {currencyFormatter.format(alert.threshold)}.
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl bg-emerald-50 px-4 py-4 text-sm text-slate-600">
-                  No connected-party groups currently breach the 15% capital threshold.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Gross Exposure"
-          value={currencyFormatter.format(overview.summary.total_exposure)}
-          note="Current on-book balance across the consolidated corporate loan portfolio."
-          accent="bg-teal"
-          icon={Landmark}
-        />
-        <MetricCard
-          label="Expected Credit Loss"
-          value={currencyFormatter.format(overview.summary.total_ecl)}
-          note="Full-cycle ECL modeling incorporating Zimbabwe-specific macro variables."
-          accent="bg-ember"
-          icon={ShieldAlert}
-          trend={{ value: "+2.4%", isPositive: false }}
-        />
-        <MetricCard
-          label="Capital Ratio"
-          value={`${percentFormatter.format(overview.summary.capital_ratio)}%`}
-          note="Post-stress capital adequacy based on Basel III / RBZ guidelines."
-          accent="bg-moss"
-          icon={Scale}
-          trend={{ value: "-0.8%", isPositive: false }}
-        />
-        <MetricCard
-          label="Largest Sector"
-          value={topSector?.label ?? "N/A"}
-          note={
-            topSector
-              ? `Concentration alert: ${currencyFormatter.format(topSector.amount)} in ${topSector.label}.`
-              : "Sector concentration analysis unavailable."
-          }
-          accent="bg-slate-900"
-          icon={Briefcase}
-        />
-      </section>
-
-      <section className="mt-6 grid gap-6 xl:grid-cols-[1.25fr,0.9fr]">
-        <StressPanel
-          runs={overview.stress.runs}
-          scenarios={overview.stress.scenarios}
-          selectedScenarioId={selectedScenarioId}
-          onSelectScenario={setSelectedScenarioId}
-          onRefresh={refresh}
-          activeMacroScenarioId={overview.macro_scenario.scenario_id}
-        />
-        <RegulatoryTimeline
-          updates={overview.regulations.updates}
-          rulebook={overview.regulations.rulebook}
-        />
-      </section>
-
-      <section className="mt-6 grid gap-6 xl:grid-cols-[1.25fr,0.9fr]">
-        <ExposureTable exposures={overview.exposures} />
-
-        <div className="grid gap-6">
-          <section className="surface-card p-6">
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-teal" />
-              <p className="data-label">Portfolio Shape</p>
-            </div>
-            <div className="mt-5 grid gap-3">
-              {overview.summary.stage_distribution.map((stage) => (
-                <div key={stage.label} className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <p className="font-semibold text-ink">{stage.label}</p>
-                    <p className="text-sm font-medium text-slate-700">
-                      {currencyFormatter.format(stage.amount)}
-                    </p>
-                  </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className="h-full rounded-full bg-teal"
-                      style={{
-                        width: `${Math.min(
-                          (stage.amount / overview.summary.total_exposure) * 100,
-                          100,
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="surface-card p-6">
-            <div className="flex items-center gap-3">
-              <ArrowUpRight className="h-5 w-5 text-ember" />
-              <p className="data-label">Top Exposures</p>
-            </div>
-            <div className="mt-5 grid gap-3">
-              {overview.summary.top_exposures.map((exposure) => (
-                <article key={exposure.loan_id} className="rounded-2xl bg-mist px-4 py-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-semibold text-ink">{exposure.customer_name}</h3>
-                      <p className="mt-1 font-[family-name:var(--font-mono)] text-xs text-slate-500">
-                        {exposure.loan_id} • Stage {exposure.stage}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-ink">
-                        {currencyFormatter.format(exposure.exposure)}
-                      </p>
-                      <p className="text-sm text-ember">
-                        ECL {currencyFormatter.format(exposure.ecl)}
-                      </p>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        </div>
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }
-

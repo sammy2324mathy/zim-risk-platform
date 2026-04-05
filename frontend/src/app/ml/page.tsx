@@ -1,6 +1,6 @@
-import { MLDevelopmentPage } from "@/pages/MLDevelopment";
+import { MLDevelopment } from "@/views/MLDevelopment";
 
 export default function MLPage() {
-  return <MLDevelopmentPage />;
+  return <MLDevelopment />;
 }
 
